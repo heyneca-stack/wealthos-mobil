@@ -56,6 +56,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .foot .w{color:var(--toast)}
 .empty{background:var(--panel);padding:16px;margin-top:12px;font-size:13px;color:var(--sub)}
 .empty b{color:var(--text)}
+.big{display:block;width:100%;margin:12px 0 4px;background:var(--toast);color:var(--ink);border:0;padding:12px;font-weight:800;font-size:15px}
+.hand{background:var(--toast);color:var(--ink);padding:10px 12px;margin-top:10px;font-size:12.5px;font-weight:600}
+.hand button{display:block;width:100%;margin-top:8px;background:var(--ink);color:var(--toast);border:0;padding:10px;font-weight:800;font-size:14px}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);background:var(--toast);color:var(--ink);padding:9px 14px;font-weight:700;font-size:12.5px;box-shadow:0 12px 34px rgba(0,0,0,.55);max-width:92vw;z-index:20}
 .veil{position:fixed;inset:0;background:rgba(5,8,12,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
 .dlg{background:var(--panel2);border:1px solid #2f3b47;width:min(460px,100%);padding:14px}
@@ -122,16 +125,22 @@ async function fetchAll(manual){if(busy||!data)return;busy=true;$('#fetch').clas
 function calc(d,Q){let val=d.x||0,pre=d.x||0,day=0,has=false;const rows=d.p.map(([w,qty,fb])=>{const q=Q.q[w],price=q?.price??fb,prev=q?.prev??null,v=qty*price;
   val+=v;pre+=prev!=null?qty*prev:v;if(prev!=null){day+=qty*(price-prev);has=true}return {w,name:q?.name||w,qty,price,v,pct:prev?100*(price/prev-1):null,fb:!q}});
  return {val,day:has?day:null,pct:has&&pre>0?100*day/pre:null,rows}}
-const open=new Set(ls.get(K_OPEN,[]));
+const open=new Set(ls.get(K_OPEN,[])),standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
 function render(){const M=$('#main'),Q=ls.get(K_Q,{t:null,q:{}});
  const t=Q.t?new Date(Q.t):null;$('#stamp').textContent=t?t.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'–';$('#dt').textContent=t?t.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}):'';
- if(!data){M.innerHTML=`<div class="empty"><b>Noch keine Bestände.</b><br><br>In WealthOS am PC: Einstellungen → <b>📱 Mobil</b> → Depots anhaken → <b>Link kopieren</b> und an dich selbst mailen.<br><br>Hier: Link in der Mail lange drücken → <b>Link kopieren</b> → oben <b>⚙</b> → einfügen → <b>Übernehmen</b>.</div>`;return}
+ if(!data){M.innerHTML=`<div class="empty"><b>Noch keine Bestände.</b><button class="big" data-paste>📋 Link einfügen</button>Vorher den WealthOS-Link kopieren: in der Mail den Link lange drücken → <b>Link kopieren</b>. Oder in Safari den Link öffnen und dort auf <b>Für das Home-Symbol kopieren</b> tippen.<br><br>Den Link erzeugt WealthOS am PC: Einstellungen → <b>📱 Mobil</b> → Depots anhaken → <b>Link kopieren</b>.</div>`;return}
  const C=data.d.map(d=>({d,...calc(d,Q)})),T=ls.get(K_TICK,{}),fbN=C.reduce((a,c)=>a+c.rows.filter(r=>r.fb).length,0);
  const dot=n=>{const k=T[n];if(k?.prev==null||k.cur==null)return '';const dv=k.cur-k.prev;return Math.abs(dv)<0.005?'eq':dv>0?'up':'dn'};
  M.innerHTML=`<div class="list">${C.map((c,i)=>`<div class="dep"><button class="row" data-i="${i}"><span class="c" style="background:${esc(c.d.c||'#5d6873')}"></span><span class="nm"><b>${esc(c.d.n)}</b><span>${eur(c.val)}${c.d.i!=null?` (<em class="${c.val-c.d.i>=0?'p':'n'}">${sgn(c.val-c.d.i)}</em>)`:''}</span></span>${box(c.pct,dot(c.d.n))}<span class="ch ${c.day==null?'':c.day>=0?'p':'n'}">${c.day==null?'–':sgn(c.day)}</span></button>
   ${open.has(c.d.n)?`<div class="pos"><table><tr><th>Wert</th><th>Kurs</th><th>Heute</th><th>€</th></tr>${c.rows.slice().sort((a,b)=>b.v-a.v).map(r=>`<tr><td><div>${esc(r.name)}</div><small>${esc(r.w)} · ${r.qty.toLocaleString('de-DE',{maximumFractionDigits:4})} St.</small></td><td class="${r.fb?'fb':''}">${r.price.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td class="${r.pct==null?'':zc(r.pct)}">${r.pct==null?'–':(r.pct>=0?'▲':'▼')+Math.abs(r.pct).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})}</td><td>${eur(r.v)}</td></tr>`).join('')}${c.d.x?`<tr><td><div>Ohne WKN (fest)</div></td><td></td><td></td><td>${eur(c.d.x)}</td></tr>`:''}</table></div>`:''}</div>`).join('')}</div>
+ ${!standalone&&/[#&]w=/.test(location.hash)?`<div class="hand">Für das Home-Symbol: hier kopieren, dann die App über das Symbol öffnen und „Link einfügen“ tippen.<button data-copy>Für das Home-Symbol kopieren</button></div>`:''}
  <div class="foot"><span>Bestände vom ${new Date(data.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</span><span>Kurse: onvista</span>${fbN?`<span class="w">${fbN} ohne aktuellen Kurs (Wert aus WealthOS)</span>`:''}</div>`}
-document.addEventListener('click',e=>{const r=e.target.closest('.row');if(r){const n=data.d[+r.dataset.i].n;open.has(n)?open.delete(n):open.add(n);ls.set(K_OPEN,[...open]);render()}});
+async function take(o){data=o;ls.set(K_DATA,o);toast(`${o.d.length} Depot${o.d.length===1?'':'s'} übernommen`);render();fetchAll(false)}
+document.addEventListener('click',async e=>{
+ if(e.target.closest('[data-paste]')){let t='';try{t=await navigator.clipboard.readText()}catch(_){}
+  if(!t){toast('Kein Link in der Zwischenablage – bitte über ⚙ einfügen');return}try{await take(await fromText(t))}catch(err){toast('Nicht übernommen: '+err.message)}return}
+ if(e.target.closest('[data-copy]')){try{await navigator.clipboard.writeText(location.href);toast('Kopiert – jetzt die App über das Home-Symbol öffnen und „Link einfügen“ tippen')}catch(_){toast('Kopieren nicht möglich – Link in der Mail lange drücken → Link kopieren')}return}
+ const r=e.target.closest('.row');if(r){const n=data.d[+r.dataset.i].n;open.has(n)?open.delete(n):open.add(n);ls.set(K_OPEN,[...open]);render()}});
 $('#fetch').onclick=()=>fetchAll(true);
 
 /* ---- ⚙: Link einfügen (für die Home-Bildschirm-App) und Bestände löschen ---- */
@@ -143,7 +152,7 @@ $('#cfg').onclick=()=>{const v=document.createElement('div');v.className='veil';
  v.onclick=async e=>{if(e.target===v||e.target.closest('[data-x]')){v.remove();return}
   const d=e.target.closest('[data-del]');if(d){if(!d.dataset.ask){d.dataset.ask=1;d.textContent='Wirklich löschen?';return}
    for(const k of [K_DATA,K_Q,K_OPEN,K_TICK])try{localStorage.removeItem(k)}catch(_){}data=null;history.replaceState(null,'',location.pathname);v.remove();render();toast('Bestände gelöscht');return}
-  if(e.target.closest('[data-ok]')){try{const o=await fromText($('#lnk').value);data=o;ls.set(K_DATA,o);history.replaceState(null,'',location.pathname);v.remove();toast(`${o.d.length} Depot${o.d.length===1?'':'s'} übernommen`);render();fetchAll(false)}catch(err){toast('Nicht übernommen: '+err.message)}}}};
+  if(e.target.closest('[data-ok]')){try{const o=await fromText($('#lnk').value);history.replaceState(null,'',location.pathname);v.remove();await take(o)}catch(err){toast('Nicht übernommen: '+err.message)}}}};
 
 /* ---- Start: anzeigen, abrufen, alle 15 Minuten und beim Zurückkehren erneut ---- */
 (async()=>{await loadHash();render();if(data)fetchAll(false);
