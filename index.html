@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WealthOS">
+<meta name="theme-color" content="#0d1116">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<title>WealthOS mobil</title>
+<!-- WealthOS mobil: Kursansicht für iPhone/iPad. Enthält keine Daten. Bestände kommen nur über den Link aus WealthOS (Teil hinter #, wird nie an den Server gesendet) und bleiben im Browser des Geräts. Kurse: api.onvista.de -->
+<style>
+:root{--bg:#0d1116;--panel:#151b21;--panel2:#1b222a;--line:#26303a;--text:#e8edf2;--sub:#98a7b7;--pos:#62cda0;--neg:#ef8c96;--toast:#a67c00;--ink:#14181d;
+ --zg:#00994D;--zy:#FFEC1A;--zo:#FF8833;--zr:#FF2929}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.35 Inter,-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;
+ padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 14px) calc(env(safe-area-inset-left) + 10px);-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{display:flex;align-items:center;gap:8px;padding:2px 2px 8px;border-bottom:1px solid var(--line)}
+.top b{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);margin-right:auto}
+.ib{border:1px solid var(--line);background:var(--panel);height:32px;min-width:36px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.ib.busy{opacity:.55}
+.ib small{font-size:12px;font-weight:700}
+.tot{margin:10px 0 8px;background:var(--panel);padding:12px 12px 10px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.tot .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+.tot .v{font-size:26px;font-weight:800;letter-spacing:-.01em}
+.tot .e{grid-column:2;grid-row:2;text-align:right}
+.box{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;background:var(--ink);padding:3px 8px;font-weight:800;white-space:nowrap}
+.box em{font-style:normal;min-width:5.2ch;text-align:right}
+.box i{font-style:normal;font-size:.85em}
+.g{color:var(--zg)}.y{color:var(--zy)}.o{color:var(--zo)}.r{color:var(--zr)}
+.p{color:var(--pos)}.n{color:var(--neg)}
+.tot .box{font-size:15px;padding:5px 10px}
+.tot .d{grid-column:1;grid-row:3;font-size:15px;font-weight:800}
+.list{display:flex;flex-direction:column;gap:4px}
+.dep{background:var(--panel)}
+.row{width:100%;border:0;background:transparent;display:grid;grid-template-columns:4px minmax(0,1fr) auto auto;gap:9px;align-items:center;padding:9px 10px 9px 0;text-align:left}
+.row .c{align-self:stretch}
+.row .nm{min-width:0}
+.row .nm b{display:block;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .nm span{font-size:12px;color:var(--sub)}
+.row .ch{font-size:13px;font-weight:800;text-align:right;min-width:9ch}
+.pos{border-top:1px solid var(--line);padding:2px 10px 6px 14px}
+.pos table{width:100%;border-collapse:collapse;font-size:12px}
+.pos th{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);text-align:right;padding:6px 0 3px 8px}
+.pos th:first-child{text-align:left;padding-left:0}
+.pos td{padding:4px 0 4px 8px;text-align:right;border-top:1px solid #1f272f;white-space:nowrap}
+.pos td:first-child{text-align:left;padding-left:0;white-space:normal;max-width:0;width:100%}
+.pos td:first-child div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pos td:first-child small{color:var(--sub);font-size:10.5px}
+.pos .fb{color:var(--sub)}
+.foot{margin-top:10px;font-size:11px;color:var(--sub);display:flex;flex-wrap:wrap;gap:4px 12px}
+.foot .w{color:var(--toast)}
+.empty{background:var(--panel);padding:16px;margin-top:12px;font-size:13px;color:var(--sub)}
+.empty b{color:var(--text)}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);background:var(--toast);color:var(--ink);padding:9px 14px;font-weight:700;font-size:12.5px;box-shadow:0 12px 34px rgba(0,0,0,.55);max-width:92vw;z-index:20}
+.veil{position:fixed;inset:0;background:rgba(5,8,12,.62);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.dlg{background:var(--panel2);border:1px solid #2f3b47;width:min(460px,100%);padding:14px}
+.dlg h3{margin:0 0 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);display:flex;justify-content:space-between;align-items:center}
+.dlg h3 button{border:0;background:transparent;font-size:16px;color:var(--sub);padding:0 2px}
+.dlg p{margin:0 0 8px;font-size:12px;color:var(--sub)}
+.dlg textarea{width:100%;height:90px;background:var(--bg);color:var(--text);border:1px solid var(--line);font:11px/1.4 ui-monospace,monospace;padding:6px}
+.dlg .f{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.dlg .go{background:var(--toast);color:var(--ink);border:0;padding:7px 16px;font-weight:800}
+.dlg .sec{border:1px solid var(--line);background:transparent;padding:7px 12px}
+.dlg .del{border:1px solid #5a2a31;background:transparent;color:var(--neg);padding:7px 12px;margin-right:auto}
+</style>
+</head>
+<body>
+<div class="top"><b>WealthOS</b><button class="ib" id="fetch" aria-label="Kurse abrufen">↻ <small id="stamp">–</small></button><button class="ib" id="cfg" aria-label="Einstellungen">⚙</button></div>
+<main id="main"></main>
+<script>
+(()=>{'use strict';
+const API='https://api.onvista.de/api/v1/',K_DATA='wom_data',K_MAP='wom_map',K_Q='wom_quotes',K_OPEN='wom_open',EVERY=15*60e3;
+const TYPE={STOCK:'stocks',FUND:'funds',ETF:'etfs',DERIVATIVE:'derivatives',BOND:'bonds',INDEX:'indices'};
+const DE=['Tradegate','gettex','Stuttgart','Frankfurt','Xetra','München','Berlin','Düsseldorf','Hamburg','Lang & Schwarz','Quotrix'];
+const $=s=>document.querySelector(s);
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(_){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}}};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur=v=>Math.round(v).toLocaleString('de-DE')+' €';
+const sgn=v=>(v>0?'+':v<0?'−':'±')+Math.abs(Math.round(v)).toLocaleString('de-DE')+' €';
+const pc=v=>(v>=0?'+':'−')+Math.abs(v).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' %';
+const zc=p=>p>=0.5?'g':p>=0?'y':p>-0.5?'o':'r';
+const box=p=>p==null?'<span class="box"><em>–</em></span>':`<span class="box"><em class="${zc(p)}">${pc(p)}</em><i class="${zc(p)}">${p>=0?'▲':'▼'}</i></span>`;
+let toastT=0;function toast(m){let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=m;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),3800)}
+
+/* ---- Bestände: aus dem Link (#w=…) oder aus dem Gerätespeicher; der neuere Stand gilt ---- */
+async function unpack(s){s=s.replace(/-/g,'+').replace(/_/g,'/');const u=Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+ const st=new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'));const o=JSON.parse(await new Response(st).text());
+ if(!o||o.v!==1||!Array.isArray(o.d))throw new Error('unbekanntes Format');return o}
+const fromText=t=>{const m=/[#&]w=([A-Za-z0-9_-]+)/.exec(t||'');return m?unpack(m[1]):Promise.reject(new Error('kein WealthOS-Link'))};
+let data=ls.get(K_DATA,null);
+async function loadHash(){if(!/[#&]w=/.test(location.hash))return;try{const o=await fromText(location.hash);if(!data||String(o.t)>=String(data.t)){data=o;ls.set(K_DATA,o)}}catch(e){toast('Link nicht lesbar: '+e.message)}}
+
+/* ---- onvista (wie in WealthOS: Tradegate, sonst andere deutsche Börse in EUR, sonst Heimatbörse umgerechnet) ---- */
+async function J(u){const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
+async function resolve(w,map){if(map[w]?.isin)return map[w];const d=await J(API+'instruments/query?searchValue='+encodeURIComponent(w));
+ const x=(d.list||[]).find(i=>String(i.wkn||'').toUpperCase()===w.toUpperCase());return x?map[w]={t:x.entityType,isin:x.isin,name:x.name}:null}
+function pick(s){const ql=s.quoteList?.list||[],ok=q=>Number(q.last)>0,mk=q=>q.market?.name||'';
+ for(const n of DE){const q=ql.find(q=>ok(q)&&mk(q).includes(n)&&(q.isoCurrency||'EUR')==='EUR');if(q)return q}
+ return ql.find(q=>ok(q)&&q.isoCurrency==='EUR')||(s.quote&&ok(s.quote)?s.quote:null)||ql.find(ok)||null}
+const fxCache={};
+async function fx(c){c=String(c||'EUR').trim();if(c.toUpperCase()==='EUR')return 1;const gbx=/^GB[Xp]$/i.test(c)&&c!=='GBP',k=gbx?'GBP':c.toUpperCase();
+ if(!(k in fxCache))fxCache[k]=J(API+'currencies/'+k+'EUR/snapshot').then(d=>Number(d?.quote?.last)||null).catch(()=>null);const r=await fxCache[k];return r?(gbx?r/100:r):null}
+async function quote(w,map){const m=await resolve(w,map);if(!m)throw new Error('nicht gefunden');
+ const q=pick(await J(API+(TYPE[m.t]||'stocks')+'/ISIN:'+m.isin+'/snapshot'));if(!q)throw new Error('kein Kurs');
+ const f=await fx(q.isoCurrency||'EUR');if(!f)throw new Error('ohne Umrechnungskurs');
+ return {price:Number(q.last)*f,prev:Number(q.previousLast)>0?Number(q.previousLast)*f:null,at:q.datetimeLast||null,name:m.name}}
+let busy=false;
+async function fetchAll(manual){if(busy||!data)return;busy=true;$('#fetch').classList.add('busy');$('#stamp').textContent='…';
+ const map=ls.get(K_MAP,{}),Q=ls.get(K_Q,{t:null,q:{}}),miss=[];for(const k in fxCache)delete fxCache[k];
+ const ws=[...new Set(data.d.flatMap(d=>d.p.map(p=>p[0])))];let ok=0;
+ try{for(let i=0;i<ws.length;i+=6)await Promise.all(ws.slice(i,i+6).map(w=>quote(w,map).then(x=>{Q.q[w]=x;ok++}).catch(e=>{miss.push(w);if(Q.q[w])Q.q[w].old=true})));
+  ls.set(K_MAP,map);if(ok){Q.t=new Date().toISOString();Q.miss=miss;ls.set(K_Q,Q)}
+  if(manual||!ok)toast(ok?`Kurse aktualisiert: ${ok} von ${ws.length}`:'onvista nicht erreichbar – letzter Stand bleibt')}
+ finally{busy=false;$('#fetch').classList.remove('busy');render()}}
+
+/* ---- Rechnen und Zeichnen ---- */
+function calc(d,Q){let val=d.x||0,pre=d.x||0,day=0,has=false;const rows=d.p.map(([w,qty,fb])=>{const q=Q.q[w],price=q?.price??fb,prev=q?.prev??null,v=qty*price;
+  val+=v;pre+=prev!=null?qty*prev:v;if(prev!=null){day+=qty*(price-prev);has=true}return {w,name:q?.name||w,qty,price,v,pct:prev?100*(price/prev-1):null,fb:!q}});
+ return {val,day:has?day:null,pct:has&&pre>0?100*day/pre:null,rows}}
+const open=new Set(ls.get(K_OPEN,[]));
+function render(){const M=$('#main'),Q=ls.get(K_Q,{t:null,q:{}});
+ const t=Q.t?new Date(Q.t):null;$('#stamp').textContent=t?t.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'–';
+ if(!data){M.innerHTML=`<div class="empty"><b>Noch keine Bestände.</b><br><br>In WealthOS am PC: Einstellungen → <b>📱 Mobil</b> → Depots anhaken → QR-Code mit der iPhone-Kamera scannen.<br><br>Oder den Link aus WealthOS kopieren, z. B. per Mail schicken, und hier unter ⚙ einfügen.</div>`;return}
+ const C=data.d.map(d=>({d,...calc(d,Q)})),tv=C.reduce((a,c)=>a+c.val,0),td=C.some(c=>c.day!=null)?C.reduce((a,c)=>a+(c.day||0),0):null,tp=td!=null&&tv-td>0?100*td/(tv-td):null;
+ const fbN=C.reduce((a,c)=>a+c.rows.filter(r=>r.fb).length,0);
+ M.innerHTML=`<div class="tot"><span class="k">Gesamt${t?' · '+t.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}):''}</span><span></span><span class="v">${eur(tv)}</span><span class="e">${box(tp)}</span><span class="d ${td==null?'':td>=0?'p':'n'}">${td==null?'':sgn(td)}</span></div>
+ <div class="list">${C.map((c,i)=>`<div class="dep"><button class="row" data-i="${i}"><span class="c" style="background:${esc(c.d.c||'#5d6873')}"></span><span class="nm"><b>${esc(c.d.n)}</b><span>${eur(c.val)}</span></span>${box(c.pct)}<span class="ch ${c.day==null?'':c.day>=0?'p':'n'}">${c.day==null?'–':sgn(c.day)}</span></button>
+  ${open.has(c.d.n)?`<div class="pos"><table><tr><th>Wert</th><th>Kurs</th><th>Heute</th><th>€</th></tr>${c.rows.slice().sort((a,b)=>b.v-a.v).map(r=>`<tr><td><div>${esc(r.name)}</div><small>${esc(r.w)} · ${r.qty.toLocaleString('de-DE',{maximumFractionDigits:4})} St.</small></td><td class="${r.fb?'fb':''}">${r.price.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td class="${r.pct==null?'':zc(r.pct)}">${r.pct==null?'–':(r.pct>=0?'▲':'▼')+Math.abs(r.pct).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})}</td><td>${eur(r.v)}</td></tr>`).join('')}${c.d.x?`<tr><td><div>Ohne WKN (fest)</div></td><td></td><td></td><td>${eur(c.d.x)}</td></tr>`:''}</table></div>`:''}</div>`).join('')}</div>
+ <div class="foot"><span>Bestände vom ${new Date(data.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</span><span>Kurse: onvista</span>${fbN?`<span class="w">${fbN} ohne aktuellen Kurs (Wert aus WealthOS)</span>`:''}</div>`}
+document.addEventListener('click',e=>{const r=e.target.closest('.row');if(r){const n=data.d[+r.dataset.i].n;open.has(n)?open.delete(n):open.add(n);ls.set(K_OPEN,[...open]);render()}});
+$('#fetch').onclick=()=>fetchAll(true);
+
+/* ---- ⚙: Link einfügen (für die Home-Bildschirm-App) und Bestände löschen ---- */
+$('#cfg').onclick=()=>{const v=document.createElement('div');v.className='veil';
+ v.innerHTML=`<div class="dlg"><h3>Bestände <button data-x aria-label="Schließen">✕</button></h3><p>${data?`${data.d.length} Depot${data.d.length===1?'':'s'} (${data.d.map(d=>esc(d.n)).join(', ')}) · übertragen ${new Date(data.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`:'Noch keine Bestände.'}</p>
+ <p>Neuen Link aus WealthOS (📱 Mobil → Link kopieren) hier einfügen:</p><textarea id="lnk" placeholder="https://…#w=…" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
+ <div class="f">${data?'<button class="del" data-del>Löschen</button>':''}<button class="sec" data-x>Abbrechen</button><button class="go" data-ok>Übernehmen</button></div></div>`;
+ document.body.appendChild(v);
+ v.onclick=async e=>{if(e.target===v||e.target.closest('[data-x]')){v.remove();return}
+  const d=e.target.closest('[data-del]');if(d){if(!d.dataset.ask){d.dataset.ask=1;d.textContent='Wirklich löschen?';return}
+   for(const k of [K_DATA,K_Q,K_OPEN])try{localStorage.removeItem(k)}catch(_){}data=null;history.replaceState(null,'',location.pathname);v.remove();render();toast('Bestände gelöscht');return}
+  if(e.target.closest('[data-ok]')){try{const o=await fromText($('#lnk').value);data=o;ls.set(K_DATA,o);history.replaceState(null,'',location.pathname);v.remove();toast(`${o.d.length} Depot${o.d.length===1?'':'s'} übernommen`);render();fetchAll(false)}catch(err){toast('Nicht übernommen: '+err.message)}}}};
+
+/* ---- Start: anzeigen, abrufen, alle 15 Minuten und beim Zurückkehren erneut ---- */
+(async()=>{await loadHash();render();if(data)fetchAll(false);
+ setInterval(()=>{if(document.visibilityState==='visible')fetchAll(false)},EVERY);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!data)return;const t=ls.get(K_Q,{}).t;if(!t||Date.now()-Date.parse(t)>5*60e3)fetchAll(false)});
+ window.addEventListener('hashchange',async()=>{await loadHash();render();fetchAll(false)})})();
+})();
+</script>
+</body>
+</html>
